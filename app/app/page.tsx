@@ -1,10 +1,10 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useConnection, useWallet } from '@solana/wallet-adapter-react';
 import { WalletMultiButton } from '@solana/wallet-adapter-react-ui';
 import { Program, AnchorProvider } from '@coral-xyz/anchor';
-import { PublicKey, Keypair, SystemProgram, LAMPORTS_PER_SOL, Transaction, sendAndConfirmTransaction } from '@solana/web3.js';
+import { PublicKey, Keypair, SystemProgram, LAMPORTS_PER_SOL, Transaction } from '@solana/web3.js';
 import BN from 'bn.js';
 import idlJson from '@/lib/idl/clios_archive.json';
 
@@ -33,7 +33,6 @@ export default function Home() {
   const [sourceUrl, setSourceUrl] = useState('');
   const [status, setStatus] = useState('');
   
-  // Nuovi stati per visualizzazione e filtri
   const [records, setRecords] = useState<HistoricalRecord[]>([]);
   const [filteredRecords, setFilteredRecords] = useState<HistoricalRecord[]>([]);
   const [filterCategory, setFilterCategory] = useState('Tutti');
@@ -48,42 +47,15 @@ export default function Home() {
 
   useEffect(() => {
     if (wallet.publicKey && wallet.signTransaction) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const provider = new AnchorProvider(connection, wallet as any, {});
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const prog = new Program(idlJson as any, provider);
       setProgram(prog);
     }
-  }, [wallet.publicKey, wallet.signTransaction, connection]);
+  }, [wallet.publicKey, wallet.signTransaction, connection, wallet]);
 
-  // Carica i documenti quando il programma è pronto
-  useEffect(() => {
-    if (program) {
-      loadRecords();
-    }
-  }, [program]);
-
-  // Filtra i record quando cambiano i filtri
-  useEffect(() => {
-    let filtered = [...records];
-    
-    if (filterCategory !== 'Tutti') {
-      filtered = filtered.filter(r => r.category === filterCategory);
-    }
-    
-    if (searchTerm) {
-      const term = searchTerm.toLowerCase();
-      filtered = filtered.filter(r => 
-        r.topic.toLowerCase().includes(term) || 
-        r.description.toLowerCase().includes(term)
-      );
-    }
-    
-    // Ordina per data di upload (più recenti prima)
-    filtered.sort((a, b) => b.timestampUpload - a.timestampUpload);
-    
-    setFilteredRecords(filtered);
-  }, [records, filterCategory, searchTerm]);
-
-  const loadRecords = async () => {
+  const loadRecords = useCallback(async () => {
     if (!program) {
       console.log('Program non pronto');
       return;
@@ -121,34 +93,34 @@ export default function Home() {
             
             const topicLen = data.readUInt32LE(offset);
             offset += 4;
-            const topic = data.slice(offset, offset + topicLen).toString('utf8');
+            const topicVal = data.slice(offset, offset + topicLen).toString('utf8');
             offset += topicLen;
             
             const descLen = data.readUInt32LE(offset);
             offset += 4;
-            const description = data.slice(offset, offset + descLen).toString('utf8');
+            const descriptionVal = data.slice(offset, offset + descLen).toString('utf8');
             offset += descLen;
             
             const catLen = data.readUInt32LE(offset);
             offset += 4;
-            const category = data.slice(offset, offset + catLen).toString('utf8');
+            const categoryVal = data.slice(offset, offset + catLen).toString('utf8');
             offset += catLen;
             
             const urlLen = data.readUInt32LE(offset);
             offset += 4;
-            const sourceUrl = data.slice(offset, offset + urlLen).toString('utf8');
+            const sourceUrlVal = data.slice(offset, offset + urlLen).toString('utf8');
             
-            console.log('✅ Decoded:', topic);
+            console.log('✅ Decoded:', topicVal);
             
             loadedRecords.push({
               publicKey: account.pubkey,
               author,
               timestampUpload,
               timestampEvent,
-              topic,
-              description,
-              category,
-              sourceUrl,
+              topic: topicVal,
+              description: descriptionVal,
+              category: categoryVal,
+              sourceUrl: sourceUrlVal,
             });
           } catch (e) {
             console.log('Errore decode manuale:', e);
@@ -162,7 +134,33 @@ export default function Home() {
       console.error('Errore caricamento:', error);
     }
     setLoading(false);
-  };
+  }, [program, connection]);
+
+  useEffect(() => {
+    if (program) {
+      loadRecords();
+    }
+  }, [program, loadRecords]);
+
+  useEffect(() => {
+    let filtered = [...records];
+    
+    if (filterCategory !== 'Tutti') {
+      filtered = filtered.filter(r => r.category === filterCategory);
+    }
+    
+    if (searchTerm) {
+      const term = searchTerm.toLowerCase();
+      filtered = filtered.filter(r => 
+        r.topic.toLowerCase().includes(term) || 
+        r.description.toLowerCase().includes(term)
+      );
+    }
+    
+    filtered.sort((a, b) => b.timestampUpload - a.timestampUpload);
+    
+    setFilteredRecords(filtered);
+  }, [records, filterCategory, searchTerm]);
 
   const pubblicaFatto = async () => {
     if (!topic || !description || !eventDate) {
@@ -203,11 +201,11 @@ export default function Home() {
       setEventDate('');
       setSourceUrl('');
       
-      // Ricarica i record
       await loadRecords();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Errore:', error);
-      setStatus(`❌ Errore: ${error?.message || 'Errore sconosciuto'}`);
+      const errorMessage = error instanceof Error ? error.message : 'Errore sconosciuto';
+      setStatus(`❌ Errore: ${errorMessage}`);
     }
   };
 
@@ -236,9 +234,10 @@ export default function Home() {
       await connection.confirmTransaction(signature, 'confirmed');
       
       setStatus(`✅ Tip di ${amount} SOL inviato con successo!`);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Errore tip:', error);
-      setStatus(`❌ Errore: ${error?.message || 'Errore sconosciuto'}`);
+      const errorMessage = error instanceof Error ? error.message : 'Errore sconosciuto';
+      setStatus(`❌ Errore: ${errorMessage}`);
     }
   };
 
