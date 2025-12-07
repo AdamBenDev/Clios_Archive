@@ -1,19 +1,17 @@
 'use client';
 
-import { FC, ReactNode, useMemo } from 'react';
+import { WalletAdapterNetwork } from '@solana/wallet-adapter-base';
 import { ConnectionProvider, WalletProvider } from '@solana/wallet-adapter-react';
 import { WalletModalProvider } from '@solana/wallet-adapter-react-ui';
 import { PhantomWalletAdapter } from '@solana/wallet-adapter-wallets';
 import { clusterApiUrl } from '@solana/web3.js';
+import { useMemo } from 'react';
 
 import '@solana/wallet-adapter-react-ui/styles.css';
 
-interface Props {
-  children: ReactNode;
-}
-
-export const WalletContextProvider: FC<Props> = ({ children }) => {
-  const endpoint = 'http://127.0.0.1:8899';
+export function WalletContextProvider({ children }: { children: React.ReactNode }) {
+  const network = WalletAdapterNetwork.Devnet;
+  const endpoint = useMemo(() => clusterApiUrl(network), [network]);
   
   const wallets = useMemo(() => [new PhantomWalletAdapter()], []);
 
@@ -26,4 +24,4 @@ export const WalletContextProvider: FC<Props> = ({ children }) => {
       </WalletProvider>
     </ConnectionProvider>
   );
-};
+}
