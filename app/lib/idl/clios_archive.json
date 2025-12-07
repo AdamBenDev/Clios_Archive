@@ -1,0 +1,127 @@
+{
+  "address": "411nw24abKMmqgmUXMeNgwuLytABW2HBZVR85rLGNKSY",
+  "metadata": {
+    "name": "clios_archive",
+    "version": "0.1.0",
+    "spec": "0.1.0",
+    "description": "Created with Anchor"
+  },
+  "instructions": [
+    {
+      "name": "aggiungi_fatto",
+      "discriminator": [
+        254,
+        167,
+        185,
+        244,
+        26,
+        0,
+        187,
+        174
+      ],
+      "accounts": [
+        {
+          "name": "record",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "author",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "topic",
+          "type": "string"
+        },
+        {
+          "name": "description",
+          "type": "string"
+        },
+        {
+          "name": "category",
+          "type": "string"
+        },
+        {
+          "name": "event_date",
+          "type": "i64"
+        },
+        {
+          "name": "source_url",
+          "type": "string"
+        }
+      ]
+    }
+  ],
+  "accounts": [
+    {
+      "name": "HistoricalRecord",
+      "discriminator": [
+        113,
+        149,
+        127,
+        152,
+        8,
+        133,
+        183,
+        233
+      ]
+    }
+  ],
+  "errors": [
+    {
+      "code": 6000,
+      "name": "TopicTooLong",
+      "msg": "Il titolo è troppo lungo (max 50 caratteri)."
+    },
+    {
+      "code": 6001,
+      "name": "DescriptionTooLong",
+      "msg": "La descrizione è troppo lunga (max 280 caratteri)."
+    }
+  ],
+  "types": [
+    {
+      "name": "HistoricalRecord",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "author",
+            "type": "pubkey"
+          },
+          {
+            "name": "timestamp_upload",
+            "type": "i64"
+          },
+          {
+            "name": "timestamp_event",
+            "type": "i64"
+          },
+          {
+            "name": "topic",
+            "type": "string"
+          },
+          {
+            "name": "description",
+            "type": "string"
+          },
+          {
+            "name": "category",
+            "type": "string"
+          },
+          {
+            "name": "source_url",
+            "type": "string"
+          }
+        ]
+      }
+    }
+  ]
+}
